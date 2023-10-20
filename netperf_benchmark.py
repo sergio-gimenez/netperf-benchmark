@@ -1,6 +1,6 @@
 import subprocess
 import csv
-
+import argparse
 
 def check_if_test_is_valid(test_type):
     if test_type == "TCP_STREAM":
@@ -36,12 +36,16 @@ def run_netperf_test(test_type, iterations, csv_filename):
             output = subprocess.check_output(netperf_command, shell=True).decode('utf-8')
             parse_netperf_output(output, test_type, csv_writer)
 
-
 if __name__ == "__main__":
-    test_iterations = 10
-    test_types = ["TCP_STREAM", "TCP_RR"]
+    parser = argparse.ArgumentParser(description="Automate TCP_STREAM and TCP_RR tests using netperf.")
+    parser.add_argument("--test-type", choices=["TCP_STREAM", "TCP_RR"], help="Specify the test type (TCP_STREAM or TCP_RR)")
+    parser.add_argument("--iterations", type=int, default=10, help="Number of test iterations")
+    parser.add_argument("--output-file", help="CSV file to save the results")
 
-    for test_type in test_types:
-        csv_filename = f"{test_type}_results.csv"
-        run_netperf_test(test_type, test_iterations, csv_filename)
-        print(f"{test_type} tests completed. Results saved in {csv_filename}")
+    args = parser.parse_args()
+
+    if args.test_type is None or args.output_file is None:
+        parser.print_help()
+    else:
+        run_netperf_test(args.test_type, args.iterations, args.output_file)
+        print(f"{args.test_type} tests completed. Results saved in {args.output_file}")
