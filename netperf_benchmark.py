@@ -2,15 +2,14 @@ import subprocess
 import csv
 import argparse
 
-def check_if_test_is_valid(test_type):
+def check_if_test_is_valid(test_type, host, port):
     if test_type == "TCP_STREAM":
-        netperf_command = "netperf -t TCP_STREAM -l 10 -H <server_ip>"
+        netperf_command = f"netperf -t TCP_STREAM -l 10 -H {host} -p {port}"
     elif test_type == "TCP_RR":
-        netperf_command = "netperf -t TCP_RR -l 10 -H <server_ip>"
+        netperf_command = f"netperf -t TCP_RR -l 10 -H {host} -p {port}"
     else:
         raise ValueError(f"Invalid test type: {test_type}")
     return netperf_command
-
 
 def parse_netperf_output(output, test_type, csv_writer):
     lines = output.splitlines()
@@ -25,20 +24,21 @@ def parse_netperf_output(output, test_type, csv_writer):
     else:
         raise ValueError(f"Invalid test type: {test_type}")
 
-
-def run_netperf_test(test_type, iterations, csv_filename):
+def run_netperf_test(test_type, host, port, iterations, csv_filename):
     with open(csv_filename, 'w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
         csv_writer.writerow(["Test Type", "Socket Size", "Request Size", "Response Size", "Elapsed Time", "Throughput"])
 
         for _ in range(iterations):
-            netperf_command = check_if_test_is_valid(test_type)
+            netperf_command = check_if_test_is_valid(test_type, host, port)
             output = subprocess.check_output(netperf_command, shell=True).decode('utf-8')
             parse_netperf_output(output, test_type, csv_writer)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Automate TCP_STREAM and TCP_RR tests using netperf.")
     parser.add_argument("--test-type", choices=["TCP_STREAM", "TCP_RR"], help="Specify the test type (TCP_STREAM or TCP_RR)")
+    parser.add_argument("--host", required=True, help="Specify the host to connect to")
+    parser.add_argument("--port", type=int, required=True, help="Specify the port to connect to")
     parser.add_argument("--iterations", type=int, default=10, help="Number of test iterations")
     parser.add_argument("--output-file", help="CSV file to save the results")
 
@@ -47,5 +47,5 @@ if __name__ == "__main__":
     if args.test_type is None or args.output_file is None:
         parser.print_help()
     else:
-        run_netperf_test(args.test_type, args.iterations, args.output_file)
+        run_netperf_test(args.test_type, args.host, args.port, args.iterations, args.output_file)
         print(f"{args.test_type} tests completed. Results saved in {args.output_file}")
